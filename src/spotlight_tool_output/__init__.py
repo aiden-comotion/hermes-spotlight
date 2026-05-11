@@ -22,7 +22,7 @@ def _dry_run() -> bool:
 def _source_label(tool_name: str) -> str:
     if tool_name.startswith("mcp__"):
         parts = tool_name.split("__", 2)
-        return f"mcp:{parts[1]}" if len(parts) > 1 else "mcp:unknown"
+        return f"mcp:{parts[1]}" if len(parts) > 1 and parts[1] else "mcp:unknown"
     if tool_name == "web_search":
         return "web-search"
     if tool_name.startswith("web_"):
