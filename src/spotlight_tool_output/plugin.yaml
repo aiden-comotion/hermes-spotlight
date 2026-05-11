@@ -1,0 +1,6 @@
+name: spotlight-tool-output
+version: 0.1.0
+description: Wraps untrusted tool outputs to defend against indirect prompt injection.
+hooks:
+  - transform_tool_result
+entry_point: spotlight_tool_output
