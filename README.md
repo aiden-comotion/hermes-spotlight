@@ -19,10 +19,18 @@ paper citation.
 
 ```bash
 pip install hermes-spotlight
-hermes-spotlight install   # copies plugin.yaml to ~/.hermes/plugins/
+hermes-spotlight install   # copies plugin.yaml to $HERMES_HOME/plugins/
 ```
 
-Restart your hermes gateway to activate.
+Add to your `config.yaml`:
+
+```yaml
+plugins:
+  enabled:
+    - spotlight-tool-output
+```
+
+Then restart your hermes gateway.
 
 ## Configuration
 

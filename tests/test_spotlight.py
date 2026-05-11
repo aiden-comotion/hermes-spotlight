@@ -20,7 +20,9 @@ class TestLoadEnvList:
 
     def test_multiple_values(self, monkeypatch):
         monkeypatch.setenv("SPOTLIGHT_TEST_KEY", "memory,filesystem,brave_search")
-        assert _load_env_list("SPOTLIGHT_TEST_KEY") == ("memory", "filesystem", "brave_search")
+        assert _load_env_list("SPOTLIGHT_TEST_KEY") == (
+            "memory", "filesystem", "brave_search"
+        )
 
     def test_strips_whitespace(self, monkeypatch):
         monkeypatch.setenv("SPOTLIGHT_TEST_KEY", " memory , filesystem ")
@@ -120,7 +122,9 @@ class TestSpotlight:
 
 class TestCallback:
     def test_wraps_web_search(self):
-        result = spotlight_tool_result("web_search", {}, "some result", None, None, None, 0)
+        result = spotlight_tool_result(
+            "web_search", {}, "some result", None, None, None, 0
+        )
         assert result is not None
         assert "<UNTRUSTED" in result
 
@@ -129,10 +133,15 @@ class TestCallback:
 
     def test_passes_through_empty_string(self):
         assert spotlight_tool_result("web_search", {}, "", None, None, None, 0) is None
-        assert spotlight_tool_result("web_search", {}, "   ", None, None, None, 0) is None
+        assert (
+            spotlight_tool_result("web_search", {}, "   ", None, None, None, 0) is None
+        )
 
     def test_passes_through_unwrapped_tool(self):
-        assert spotlight_tool_result("read_file", {}, "content", None, None, None, 0) is None
+        assert (
+            spotlight_tool_result("read_file", {}, "content", None, None, None, 0)
+            is None
+        )
 
     def test_passes_through_empty_tool_name(self):
         assert spotlight_tool_result("", {}, "content", None, None, None, 0) is None
@@ -145,7 +154,9 @@ class TestCallback:
 
     def test_dry_run_returns_none(self, monkeypatch):
         monkeypatch.setenv("SPOTLIGHT_DRY_RUN", "true")
-        assert spotlight_tool_result("web_search", {}, "text", None, None, None, 0) is None
+        assert (
+            spotlight_tool_result("web_search", {}, "text", None, None, None, 0) is None
+        )
 
     def test_dry_run_false_wraps_normally(self, monkeypatch):
         monkeypatch.setenv("SPOTLIGHT_DRY_RUN", "false")
@@ -157,4 +168,6 @@ class TestCallback:
             raise RuntimeError("simulated failure")
 
         monkeypatch.setattr(spl, "_spotlight", boom)
-        assert spotlight_tool_result("web_search", {}, "text", None, None, None, 0) is None
+        assert (
+            spotlight_tool_result("web_search", {}, "text", None, None, None, 0) is None
+        )

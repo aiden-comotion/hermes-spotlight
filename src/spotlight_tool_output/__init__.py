@@ -7,7 +7,7 @@ logger = logging.getLogger("hermes.plugins.spotlight_tool_output")
 SPOTLIGHT_MARKER = "«⫶»"
 
 # Built-in patterns always treated as untrusted. MCP is opt-in via env var.
-WRAP_PATTERNS = ("web_*", "browser_*", "web_search", "web_fetch")
+WRAP_PATTERNS = ("web_*", "browser_*")
 
 
 def _load_env_list(key: str) -> tuple[str, ...]:
