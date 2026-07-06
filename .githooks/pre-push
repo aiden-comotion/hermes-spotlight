@@ -1,0 +1,66 @@
+#!/usr/bin/env sh
+# version-controlled git hooks (.githooks) — managed by scripts/install-git-hooks.sh
+# pre-push — mirror CI's `test` job locally so ruff/pytest failures never reach
+# GitHub Actions and burn minutes. Runs ONLY when the push touches Python code
+# (src/, tests/, or pyproject.toml).
+#
+# Mirrors: .github/workflows/ci.yml `test` job — `ruff check src tests` then
+# `pytest tests/`. CI runs a 3.10/3.11/3.12 matrix; the hook runs your local
+# interpreter only (a version-specific failure still gets caught by CI).
+#
+# Source of truth: this file (version-controlled). Install into .git/hooks via
+#   scripts/install-git-hooks.sh
+# Bypass once (discouraged):  git push --no-verify
+set -u
+
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+cd "$REPO_ROOT" || exit 1
+
+# Decide whether the push touches Python (stdin: <lref> <lsha> <rref> <rsha> per ref).
+NEED=""
+while read -r _local_ref local_sha _remote_ref remote_sha; do
+  case "$local_sha" in *[!0]*) ;; *) continue ;; esac        # ref deletion → skip
+  case "$remote_sha" in
+    *[!0]*) base="$remote_sha" ;;                             # normal update
+    *) base=$(git merge-base "$local_sha" origin/main 2>/dev/null || echo "") ;;
+  esac
+  if [ -n "$base" ]; then
+    files=$(git diff --name-only "$base" "$local_sha" 2>/dev/null)
+  else
+    files="src/__unknown_base__"                              # can't scope → run to be safe
+  fi
+  case "$files" in
+    *src/*|*tests/*|*pyproject.toml*) NEED=1 ;;
+  esac
+done
+[ -n "$NEED" ] || exit 0
+
+# Tool resolution: prefer the repo .venv (fast, matches `pip install -e .[dev]`),
+# then uv (syncs the dev extra), then a bare PATH ruff+pytest.
+if [ -x ".venv/bin/ruff" ] && [ -x ".venv/bin/pytest" ]; then
+  RUFF=".venv/bin/ruff"; PYTEST=".venv/bin/pytest"
+elif command -v uv >/dev/null 2>&1; then
+  RUFF="uv run --extra dev ruff"; PYTEST="uv run --extra dev pytest"
+elif command -v ruff >/dev/null 2>&1 && command -v pytest >/dev/null 2>&1; then
+  RUFF="ruff"; PYTEST="pytest"
+else
+  echo "pre-push: Python changed but no ruff/pytest found — SKIPPING local checks."
+  echo "          Set up the dev env so this gate can run: uv sync --extra dev"
+  echo "          (or: python3 -m venv .venv && .venv/bin/pip install -e '.[dev]')"
+  echo "          (CI will still run ruff+pytest; this only skips the local pre-check.)"
+  exit 0
+fi
+
+echo "pre-push: Python changed → running ruff + pytest locally…"
+fail=0
+$RUFF check src tests || { echo "❌ ruff check failed — fix: ($RUFF check --fix src tests)"; fail=1; }
+$PYTEST tests/ -q     || { echo "❌ pytest failed"; fail=1; }
+
+if [ "$fail" -ne 0 ]; then
+  echo ""
+  echo "pre-push BLOCKED — fix the above so GitHub Actions doesn't fail (and burn minutes)."
+  echo "Override once (discouraged): git push --no-verify"
+  exit 1
+fi
+echo "✓ local CI checks passed."
+exit 0
